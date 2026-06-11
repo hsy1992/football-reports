@@ -1,0 +1,403 @@
+# -*- coding: utf-8 -*-
+"""横版图文系统介绍 PDF（4 页）。"""
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Paragraph
+
+W, H = landscape(A4)  # 842 x 595
+NAVY = colors.HexColor("#1a3e6e")
+NAVY_D = colors.HexColor("#122c4f")
+GREEN = colors.HexColor("#0a7a2f")
+GRAY = colors.HexColor("#5a6572")
+LGRAY = colors.HexColor("#aeb8c2")
+CARD_BG = colors.HexColor("#f4f7fb")
+CARD_BD = colors.HexColor("#d8e0ea")
+DARK = colors.HexColor("#222a33")
+
+pdfmetrics.registerFont(TTFont("Hei", "/System/Library/Fonts/STHeiti Light.ttc", subfontIndex=0))
+pdfmetrics.registerFont(TTFont("HeiB", "/System/Library/Fonts/STHeiti Medium.ttc", subfontIndex=0))
+registerFontFamily("Hei", normal="Hei", bold="HeiB", italic="Hei", boldItalic="HeiB")
+
+OUT = "/Users/d.hw/Documents/D.Haowen/足球预测/reports/系统介绍.pdf"
+c = canvas.Canvas(OUT, pagesize=(W, H))
+
+
+def para(x, y_top, w, text, size=9.5, leading=15, color=DARK, font="Hei"):
+    st = ParagraphStyle("p", fontName=font, fontSize=size, leading=leading,
+                        textColor=color)
+    p = Paragraph(text, st)
+    _, ph = p.wrap(w, 1000)
+    p.drawOn(c, x, y_top - ph)
+    return ph
+
+
+def nbox(x, y, w, h, lines, fill=NAVY, tc=colors.white, fs=10.5, fs2=8,
+         stroke=None):
+    c.setFillColor(fill)
+    c.setStrokeColor(stroke or fill)
+    c.roundRect(x, y, w, h, 7, fill=1, stroke=1)
+    n = len(lines)
+    total = n * (fs + 4)
+    ty = y + h / 2 + total / 2 - fs
+    for i, ln in enumerate(lines):
+        c.setFillColor(tc)
+        f, s = ("HeiB", fs) if i == 0 else ("Hei", fs2 + 1.5)
+        c.setFont(f, s)
+        c.drawCentredString(x + w / 2, ty, ln)
+        ty -= (fs + 4)
+
+
+def card(x, y, w, h, title=None):
+    c.setFillColor(CARD_BG)
+    c.setStrokeColor(CARD_BD)
+    c.roundRect(x, y, w, h, 9, fill=1, stroke=1)
+    if title:
+        c.setFillColor(NAVY)
+        c.setFont("HeiB", 11.5)
+        c.drawString(x + 14, y + h - 24, title)
+        c.setStrokeColor(NAVY)
+        c.setLineWidth(2)
+        c.line(x + 14, y + h - 30, x + 44, y + h - 30)
+        c.setLineWidth(1)
+
+
+def arrow(x1, y1, x2, y2, color=LGRAY, width=1.6):
+    c.setStrokeColor(color)
+    c.setFillColor(color)
+    c.setLineWidth(width)
+    c.line(x1, y1, x2, y2)
+    import math
+    ang = math.atan2(y2 - y1, x2 - x1)
+    L, sp = 7, 0.45
+    p = c.beginPath()
+    p.moveTo(x2, y2)
+    p.lineTo(x2 - L * math.cos(ang - sp), y2 - L * math.sin(ang - sp))
+    p.lineTo(x2 - L * math.cos(ang + sp), y2 - L * math.sin(ang + sp))
+    p.close()
+    c.drawPath(p, fill=1, stroke=0)
+    c.setLineWidth(1)
+
+
+def header(num, title, sub):
+    c.setFillColor(NAVY)
+    c.rect(0, H - 64, W, 64, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#9fb6d9"))
+    c.setFont("HeiB", 22)
+    c.drawString(40, H - 44, num)
+    c.setFillColor(colors.white)
+    c.setFont("HeiB", 17)
+    c.drawString(92, H - 42, title)
+    c.setFillColor(colors.HexColor("#b9c8de"))
+    c.setFont("Hei", 9.5)
+    c.drawString(92, H - 57, sub)
+
+
+def footer(page):
+    c.setFillColor(LGRAY)
+    c.setFont("Hei", 8)
+    c.drawString(40, 22, "足球赛前数据采集与盘口解析系统 · 纯数据研究工具")
+    c.drawRightString(W - 40, 22, f"{page:02d} / 04")
+
+
+# ================= PAGE 1 封面 =================
+c.setFillColor(NAVY)
+c.rect(0, H - 8, W, 8, fill=1, stroke=0)
+
+c.setFillColor(NAVY)
+c.setFont("HeiB", 30)
+c.drawCentredString(W / 2, H - 150, "足球赛前数据采集与盘口解析系统")
+c.setFillColor(GRAY)
+c.setFont("Hei", 13)
+c.drawCentredString(W / 2, H - 180, "市场校准 · 数学建模 · 闭环验证 —— 本地全自动数据管线")
+c.setStrokeColor(CARD_BD)
+c.line(W / 2 - 140, H - 200, W / 2 + 140, H - 200)
+
+# 核心逻辑链
+chain = [
+    ("采 集", "多源自动降级"),
+    ("存 储", "追加式快照·全量存档"),
+    ("建 模", "双锚去水·泊松+DC"),
+    ("验 证", "赛果回填·每日对账"),
+    ("反 馈", "过门槛教训自动生效"),
+]
+bw, bh, gap = 122, 52, 36
+total_w = len(chain) * bw + (len(chain) - 1) * gap
+x0 = (W - total_w) / 2
+cy = H - 300
+for i, (t, s) in enumerate(chain):
+    x = x0 + i * (bw + gap)
+    nbox(x, cy, bw, bh, [t], fs=14)
+    c.setFillColor(GRAY)
+    c.setFont("Hei", 8.5)
+    c.drawCentredString(x + bw / 2, cy - 16, s)
+    if i < len(chain) - 1:
+        arrow(x + bw + 6, cy + bh / 2, x + bw + gap - 6, cy + bh / 2, NAVY)
+# 反馈回路弧线: 反馈 -> 建模
+c.setStrokeColor(GREEN)
+c.setLineWidth(1.4)
+c.setDash(3, 3)
+fx = x0 + 4 * (bw + gap) + bw / 2
+tx = x0 + 2 * (bw + gap) + bw / 2
+c.bezier(fx, cy - 28, fx, cy - 64, tx, cy - 64, tx, cy - 28)
+c.setDash()
+arrow(tx, cy - 40, tx, cy - 30, GREEN)
+c.setFillColor(GREEN)
+c.setFont("Hei", 8.5)
+c.drawCentredString((fx + tx) / 2, cy - 78, "校准反馈（样本量门槛保护）")
+c.setLineWidth(1)
+
+# 数据卡
+stats = [
+    ("10 + 1", "博彩公司 + Betfair 交易所"),
+    ("30 分钟", "临场快照频率"),
+    ("2 锚点", "Pinnacle × Betfair 双校准"),
+    ("≥ 20 场", "教训生效的统计门槛"),
+]
+sw, sh, sgap = 168, 76, 22
+x0 = (W - (len(stats) * sw + 3 * sgap)) / 2
+for i, (num, lab) in enumerate(stats):
+    x = x0 + i * (sw + sgap)
+    card(x, 96, sw, sh)
+    c.setFillColor(NAVY)
+    c.setFont("HeiB", 21)
+    c.drawCentredString(x + sw / 2, 96 + sh - 36, num)
+    c.setFillColor(GRAY)
+    c.setFont("Hei", 9)
+    c.drawCentredString(x + sw / 2, 96 + 16, lab)
+
+c.setFillColor(LGRAY)
+c.setFont("Hei", 8.5)
+c.drawCentredString(W / 2, 50, "Python · SQLite · launchd · The Odds API · 泊松-Dixon-Coles 模型 ｜ 2026-06")
+c.drawCentredString(W / 2, 36, "纯数据研究工具，不含投注功能，不构成投注建议")
+c.showPage()
+
+# ================= PAGE 2 数据层 =================
+header("01", "数据层 —— 可靠的数据是一切分析的前提", "多源降级 · 自适应调度 · 追加式全量存档")
+
+# 管线图
+py = H - 175
+src = [("The Odds API", "赔率 · 主源"), ("OddsPortal", "赔率 · 降级备援"),
+       ("ESPN 接口", "球队近况 · 主源"), ("FBref", "xG · 备援")]
+for i, (t, s) in enumerate(src):
+    yy = py + 42 - i * 44
+    fill = NAVY if "主源" in s else colors.HexColor("#7188a8")
+    nbox(56, yy, 132, 36, [t, s], fill=fill, fs=10)
+    arrow(196, yy + 18, 238, py + 24, LGRAY)
+
+nbox(244, py - 12, 150, 72, ["自适应调度", "launchd 每 30min 唤醒", "频率由开赛倒计时决定"], fs=11.5)
+arrow(400, py + 24, 442, py + 24, NAVY)
+nbox(448, py - 12, 150, 72, ["SQLite 快照库", "只追加 · 永不覆盖", "完整保留盘口轨迹"], fs=11.5)
+arrow(604, py + 24, 646, py + 24, NAVY)
+nbox(652, py - 12, 150, 72, ["三种输出", "走势报表 · 解析 PDF", "校准报告"], fill=GREEN, fs=11.5)
+
+# 底部三卡
+cy2, ch2 = 64, 210
+cw2, cgap = 240, 21
+x0 = 40
+# 卡1: 自适应频率
+card(x0, cy2, cw2, ch2, "自适应抓取频率")
+tl_y = cy2 + 118
+c.setStrokeColor(GRAY)
+c.line(x0 + 22, tl_y, x0 + cw2 - 22, tl_y)
+segs = [(0.0, 0.30, "> 48h", "不抓取", 0),
+        (0.30, 0.72, "48h ~ 3h", "每 6 小时", 5),
+        (0.72, 1.0, "最后 3h", "每 30 分钟", 11)]
+span = cw2 - 44
+for s0, s1, lab, freq, ticks in segs:
+    xa, xb = x0 + 22 + s0 * span, x0 + 22 + s1 * span
+    c.setStrokeColor(NAVY)
+    for i in range(ticks):
+        tx = xa + (xb - xa) * (i + 0.5) / ticks
+        c.line(tx, tl_y - 4, tx, tl_y + 4)
+    c.setFillColor(NAVY)
+    c.setFont("HeiB", 8.5)
+    c.drawCentredString((xa + xb) / 2, tl_y + 12, freq)
+    c.setFillColor(GRAY)
+    c.setFont("Hei", 8)
+    c.drawCentredString((xa + xb) / 2, tl_y - 18, lab)
+c.setFillColor(DARK)
+para(x0 + 16, cy2 + 78, cw2 - 32,
+     "launchd 固定节拍唤醒，<b>是否真抓由程序按开赛倒计时决定</b>——调度逻辑在代码里，可测试、可调整；开赛即自动停止。",
+     size=9, leading=13.5)
+# 卡2: 额度经济学
+x1 = x0 + cw2 + cgap
+card(x1, cy2, cw2, ch2, "额度经济学")
+rows = [("批量调用", "同赛事 N 场合并 = 1 次请求（3 额度），跟 20 场与跟 2 场同价"),
+        ("被动存档", "批量响应中未跟踪的场次全部免费入库，临时关注可无缝升级"),
+        ("额度哨兵", "余量 < 60 自动弹 macOS 通知，耗尽自动切换备援源")]
+ry = cy2 + ch2 - 52
+for t, s in rows:
+    c.setFillColor(GREEN)
+    c.setFont("HeiB", 9.5)
+    c.drawString(x1 + 16, ry, t)
+    para(x1 + 76, ry + 10, cw2 - 92, s, size=8.5, leading=12)
+    ry -= 52
+# 卡3: 可靠性
+x2 = x1 + cw2 + cgap
+card(x2, cy2, cw2, ch2, "可靠性设计")
+rows = [("失败重试", "指数退避 × 3，单场失败不影响其他比赛"),
+        ("自动降级", "主源失效切换备援，每次降级写 ERROR 日志"),
+        ("无静默失败", "scrape_runs 表记录每轮状态，问题可追溯到分钟级")]
+ry = cy2 + ch2 - 52
+for t, s in rows:
+    c.setFillColor(NAVY)
+    c.setFont("HeiB", 9.5)
+    c.drawString(x2 + 16, ry, t)
+    para(x2 + 76, ry + 10, cw2 - 92, s, size=8.5, leading=12)
+    ry -= 52
+footer(2)
+c.showPage()
+
+# ================= PAGE 3 模型层 =================
+header("02", "模型层 —— 从市场价格到公平概率的数学链", "幂法去水 · 双锚加权 · 泊松 + Dixon-Coles · 全参数由市场反推")
+
+chain3 = [
+    ("快照平滑", "近 3 帧加权", "消除单帧调价噪声"),
+    ("幂法去水", "还原公平概率", "修正冷门赔率虚高"),
+    ("双锚加权", "Pinnacle + Betfair", "职业盘 × 交易所互证"),
+    ("泊松 + DC 拟合", "λ主 · λ客 · ρ", "三组市场零期望约束"),
+    ("定量输出", "公平赔率 · EV · 波胆", "识别偏离共识的报价"),
+]
+bw3, bh3, gap3 = 138, 64, 18
+x0 = (W - (len(chain3) * bw3 + 4 * gap3)) / 2
+cy3 = H - 168
+for i, (t, m, s) in enumerate(chain3):
+    x = x0 + i * (bw3 + gap3)
+    fill = GREEN if i == len(chain3) - 1 else NAVY
+    nbox(x, cy3, bw3, bh3, [t, m], fill=fill, fs=11.5)
+    c.setFillColor(GRAY)
+    c.setFont("Hei", 8)
+    c.drawCentredString(x + bw3 / 2, cy3 - 14, s)
+    if i < len(chain3) - 1:
+        arrow(x + bw3 + 3, cy3 + bh3 / 2, x + bw3 + gap3 - 3, cy3 + bh3 / 2, NAVY)
+
+# 左卡: 约束
+cy4, ch4 = 66, 240
+card(40, cy4, 340, ch4, "为什么可信：三参数被三组市场条件完全锁定")
+para(56, cy4 + ch4 - 46, 308,
+     "模型只有三个自由参数（双方期望进球 λ 与低比分相关系数 ρ），"
+     "却要同时满足三组市场条件——<b>欧赔 1X2 公平概率、让球盘零期望、"
+     "大小球盘零期望</b>。参数空间没有自由发挥的余地：",
+     size=9.5, leading=15)
+items = [("ρ 不取经验值", "低比分相关性由市场平局概率反推，每场比赛各异"),
+         ("无任何主观输入", "不存在“我觉得这队强”——模型只翻译市场，不替市场表态"),
+         ("教训带门槛回流", "calibration.json 中 ≥20 场验证过的结论自动生效")]
+ry = cy4 + 118
+for t, s in items:
+    c.setFillColor(NAVY)
+    c.setFont("HeiB", 9.5)
+    c.drawString(56, ry, "· " + t)
+    para(70, ry - 4, 290, s, size=8.5, leading=12, color=GRAY)
+    ry -= 40
+
+# 右卡: 实测精度
+card(402, cy4, 400, ch4, "外推精度实测：2 个校准点复现整条盘口梯子")
+para(418, cy4 + ch4 - 46, 368,
+     "模型仅用主流线（让球 -1.25）校准，去推算 Pinnacle 实际开出的深盘价格——"
+     "偏差全部落在抽水(2~4%)的解释范围内：",
+     size=9.5, leading=15)
+tbl = [("盘口线", "Pinnacle 实开", "模型推算", "偏差"),
+       ("-1.25（校准点）", "2.04", "2.09", "+2.2%"),
+       ("-1.75（外推）", "2.85", "2.90", "+1.8%"),
+       ("-2.00（外推）", "3.90", "3.91", "+0.2%"),
+       ("-2.25（外推）", "4.43", "4.44", "+0.1%")]
+ty = cy4 + 140
+colx = [418, 540, 630, 720]
+for ri, row in enumerate(tbl):
+    if ri == 0:
+        c.setFillColor(NAVY)
+        c.setFont("HeiB", 9)
+    else:
+        c.setFillColor(DARK)
+        c.setFont("Hei", 9)
+    for xi, cell in zip(colx, row):
+        c.drawString(xi, ty, cell)
+    if ri == 0:
+        c.setStrokeColor(CARD_BD)
+        c.line(418, ty - 5, 786, ty - 5)
+    ty -= 19
+para(418, cy4 + 40, 368,
+     "<b>结论</b>：泊松-DC 分布形状与市场自身的刻画高度一致，"
+     "主流玩法（让球/大小球/1X2/BTTS）的精度已到位。",
+     size=9, leading=13.5, color=GRAY)
+footer(3)
+c.showPage()
+
+# ================= PAGE 4 验证闭环 =================
+header("03", "验证闭环 —— 让数据裁决模型，而不是直觉", "赛果回填 · 每日对账 · 统计门槛保护下的教训回流")
+
+# 左: 循环图
+import math as _m
+ccx, ccy, R = 218, 280, 128
+nodes = [("自动抓取", "30min 节拍"), ("全量存档", "含被动场次"),
+         ("赛果回填", "ESPN · 自动"), ("每日对账", "calibrate 09:00"),
+         ("校准文件", "calibration.json"), ("模型生效", "analyze 读取")]
+pts = []
+for i in range(6):
+    ang = _m.pi / 2 - i * _m.pi / 3
+    pts.append((ccx + R * _m.cos(ang), ccy + R * _m.sin(ang)))
+for i in range(6):
+    x1, y1 = pts[i]
+    x2, y2 = pts[(i + 1) % 6]
+    mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+    vx, vy = mx - ccx, my - ccy
+    n = (vx ** 2 + vy ** 2) ** 0.5
+    arrow(x1 + (x2 - x1) * 0.32, y1 + (y2 - y1) * 0.32,
+          x1 + (x2 - x1) * 0.68, y1 + (y2 - y1) * 0.68, NAVY)
+for i, ((t, s), (px, pyy)) in enumerate(zip(nodes, pts)):
+    fill = GREEN if i in (3, 4) else NAVY
+    nbox(px - 56, pyy - 21, 112, 42, [t, s], fill=fill, fs=10.5)
+c.setFillColor(GRAY)
+c.setFont("HeiB", 11)
+c.drawCentredString(ccx, ccy + 6, "全自动闭环")
+c.setFont("Hei", 8.5)
+c.drawCentredString(ccx, ccy - 9, "每一环都有日志可追溯")
+
+# 右上: 门槛规则
+card(430, 270, 372, 200, "教训回流的门槛规则 —— 防止单场噪声扭曲模型")
+rules = [("≥ 20 场且差异显著", "自动生效：去水方法切换 · 锚点权重调整", GREEN),
+         ("< 20 场", "仅记录 [样本不足]，模型行为不变", GRAY),
+         ("≥ 30 场", "大比分偏差检验 → 数据决定是否升级全梯子深抓", NAVY)]
+ry = 410
+for t, s, col in rules:
+    c.setFillColor(col)
+    c.setFont("HeiB", 10)
+    c.drawString(446, ry, t)
+    para(446, ry - 3, 340, s, size=8.5, leading=12, color=DARK)
+    ry -= 44
+para(446, 296, 340,
+     "<i>“单场结果说明不了任何问题”是写进代码的设计原则，不是免责声明。</i>",
+     size=9, leading=13, color=GRAY)
+
+# 右下: 对账指标
+card(430, 120, 372, 130, "每日对账指标")
+metrics = ["去水方法对比（幂法 vs 等比例，logloss）", "单锚 vs 双锚（Pinnacle vs +Betfair）",
+           "平局概率校准", "大胜（净 3+ 球）频率 vs 模型尾部", "波胆 top3 命中率"]
+ry = 120 + 130 - 48
+for i, mtext in enumerate(metrics):
+    xx = 446 if i % 2 == 0 else 630
+    if i % 2 == 0 and i:
+        ry -= 26
+    c.setFillColor(NAVY)
+    c.circle(xx - 6, ry + 3, 2, fill=1, stroke=0)
+    c.setFillColor(DARK)
+    c.setFont("Hei", 8.5)
+    c.drawString(xx + 2, ry, mtext)
+
+# 底部边界声明
+c.setFillColor(NAVY)
+c.rect(0, 36, W, 40, fill=1, stroke=0)
+c.setFillColor(colors.HexColor("#c8d4e4"))
+c.setFont("Hei", 9)
+c.drawCentredString(W / 2, 60, "边界声明：模型以市场为锚，长项是赔率翻译、跨公司比价与走势还原，不构成独立于市场的预测优势")
+c.drawCentredString(W / 2, 46, "伤停、阵容等场外信息不在模型内 · 本系统仅用于数据分析研究，不构成投注建议")
+footer(4)
+c.showPage()
+
+c.save()
+print("OK:", OUT)
