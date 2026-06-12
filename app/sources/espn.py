@@ -98,8 +98,31 @@ def get_recent_matches(team_en, limit=10):
     return {"source": "espn", "team_id": team_id, "matches": played[:limit]}
 
 
+# 各数据源的国家队写法差异（ESPN/FIFA/The Odds API 各有习惯）
+_ALIASES = {
+    "czechia": "czech republic",
+    "türkiye": "turkey",
+    "united states": "usa",
+    "côte d'ivoire": "ivory coast",
+    "cote d'ivoire": "ivory coast",
+    "korea republic": "south korea",
+    "ir iran": "iran",
+    "congo dr": "dr congo",
+    "democratic republic of the congo": "dr congo",
+    "cabo verde": "cape verde",
+    "curacao": "curaçao",
+    "bosnia and herzegovina": "bosnia & herzegovina",
+    "united arab emirates": "uae",
+}
+
+
+def _canon(name):
+    n = name.lower().strip()
+    return _ALIASES.get(n, n)
+
+
 def _similar(a, b):
-    a, b = a.lower().strip(), b.lower().strip()
+    a, b = _canon(a), _canon(b)
     if a == b or a in b or b in a:
         return 1.0
     return difflib.SequenceMatcher(None, a, b).ratio()
