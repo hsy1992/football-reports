@@ -1092,6 +1092,23 @@ def build_html(res, out_path):
     rows = "".join(
         f"<tr><td>{r['score']}</td><td>{r['prob']:.1f}%</td><td>{r['fair']:.1f}</td></tr>"
         for r in top)
+    # 交叉提示：波胆首选总进球 vs 大小球推荐方向是否打架
+    cross = ""
+    ou_rec = res["recs"].get("ou")
+    if ou_rec:
+        try:
+            cs_total = sum(int(x) for x in top[0]["score"].split("-"))
+            cs_side = "under" if cs_total <= ou_rec["line"] else "over"
+            if cs_side != ou_rec["side"]:
+                cs_dir = "小球" if cs_side == "under" else "大球"
+                ou_dir = "大球" if ou_rec["side"] == "over" else "小球"
+                cross = (
+                    f'<br/><span style="color:#ffb454">⚠ 与大小球推荐方向相反：'
+                    f'波胆首选 {top[0]["score"]}（属{cs_dir}）vs 大小球推荐{ou_dir}'
+                    f'——二者优化目标不同（波胆＝最可能比分，大小球＝最划算价格），'
+                    f'<b>勿同时下注，必输一边</b>。看价值跟大小球，博彩票买波胆，二选一。</span>')
+        except (ValueError, TypeError):
+            pass
     P.append(f"""<div class="card"><div class="ct"><div class="ico">★</div>
 <h2>波胆 · 比分概率排名</h2></div>
 <table><tr><th>比分(主-客)</th><th>模型概率</th><th>公平赔率（低于即亏）</th></tr>{rows}</table>
@@ -1099,7 +1116,7 @@ def build_html(res, out_path):
 （{top[0]['prob']:.1f}%，市价 &gt; {top[0]['fair']:.1f} 才值得）、
 次选 {top[1]['score']}（需 &gt; {top[1]['fair']:.1f}）、{top[2]['score']}
 （需 &gt; {top[2]['fair']:.1f}）<br/><span class="mut">已做 Dixon-Coles 低比分修正
-（ρ={res['rho']:.3f}）；波胆方差极大，仓位应远小于亚盘/大小球</span></div></div>""")
+（ρ={res['rho']:.3f}）；波胆方差极大，仓位应远小于亚盘/大小球</span>{cross}</div></div>""")
 
     # 模拟下注
     MKT = {"ah": "亚盘", "ou": "大小球", "cs": "波胆"}
