@@ -864,77 +864,71 @@ def fmt_local(utc_iso):
 
 # ---------------- HTML 主报告（赛博朋克风横版仪表盘） ----------------
 
-CYBER_CSS = """
-:root{--bg:#070b18;--card:#0d1430;--card2:#0a102a;--line:rgba(0,212,255,.18);
---cyan:#00d4ff;--mag:#ff2e88;--vio:#8b5cf6;--ink:#dfe7ff;--mut:#7a86ad;
---good:#2bd97c;--warn:#ffb454;--bad:#ff5d6c}
+SITE_CSS = """
+/* Tesla 风格：纯白画布 · 零装饰（无阴影/渐变）· 唯一强调色电蓝 · 大留白 */
+:root{--canvas:#fff;--ash:#f4f4f4;--ink:#171a20;--body:#393c41;--mut:#5c5e62;
+--faint:#8e8e8e;--line:#eee;--line2:#d0d1d2;--blue:#3e6ae1;--blue-d:#3457b8;
+--pos:#171a20;--neg:#c0392b}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:radial-gradient(1200px 600px at 80% -10%,rgba(255,46,136,.13),transparent 60%),
-radial-gradient(1000px 500px at -10% 10%,rgba(0,212,255,.12),transparent 55%),var(--bg);
-color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
-padding:26px 32px;min-width:1100px}
-.hero{border:1px solid var(--line);border-radius:18px;padding:24px 30px;
-background:linear-gradient(135deg,rgba(0,212,255,.10),rgba(255,46,136,.08) 60%,transparent);
-box-shadow:0 0 28px rgba(0,212,255,.10),inset 0 0 60px rgba(0,0,0,.35)}
-.tag{font-size:11px;letter-spacing:.35em;color:var(--cyan);margin-bottom:10px}
-h1{font-size:32px;font-weight:800}
-h1 .vs{color:var(--mag);font-size:20px;margin:0 12px;text-shadow:0 0 14px rgba(255,46,136,.8)}
-.chips{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
-.chip{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;
-padding:4px 12px;background:rgba(0,0,0,.25)}
-.chip b{color:var(--ink)}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px;margin-top:18px}
-.card{grid-column:span 6;border:1px solid var(--line);border-radius:16px;
-background:linear-gradient(180deg,var(--card),var(--card2));padding:18px 20px;
-box-shadow:0 0 18px rgba(0,212,255,.06)}
+body{background:var(--canvas);color:var(--body);font-weight:400;line-height:1.5;
+font-family:"Universal Sans Text",-apple-system,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
+-webkit-font-smoothing:antialiased;padding:48px 40px 64px;min-width:1040px}
+.hero{padding:4px 0 28px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.tag{font-size:13px;font-weight:500;color:var(--blue);margin-bottom:14px}
+h1{font-size:38px;font-weight:500;color:var(--ink);line-height:1.2}
+h1 .vs{color:var(--mut);font-size:22px;font-weight:400;margin:0 14px}
+.chips{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+.chip{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:4px;
+padding:6px 12px;background:var(--canvas)}
+.chip b{color:var(--ink);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:32px}
+.card{grid-column:span 6;border:1px solid var(--line);border-radius:8px;
+background:var(--canvas);padding:24px 26px;overflow-x:auto}
 .card.w12{grid-column:span 12}
-.ct{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.ct .ico{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;
-justify-content:center;background:linear-gradient(135deg,var(--cyan),var(--vio));
-color:#04101e;font-weight:700;font-size:13px;box-shadow:0 0 12px rgba(0,212,255,.55)}
-.ct h2{font-size:15px;letter-spacing:.06em}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{color:#03142a;background:linear-gradient(90deg,rgba(0,212,255,.95),rgba(139,92,246,.9));
-padding:7px 8px;text-align:center;font-weight:700}
-th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
-td{padding:7px 8px;text-align:center;border-bottom:1px solid rgba(122,134,173,.15)}
+.ct{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.ct .ico{width:28px;height:28px;border-radius:4px;display:flex;align-items:center;
+justify-content:center;background:var(--ash);color:var(--ink);font-weight:500;font-size:14px}
+.ct h2{font-size:16px;font-weight:500;color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{color:var(--mut);background:var(--ash);padding:10px;text-align:center;font-weight:500;
+border-bottom:1px solid var(--line)}
+th:first-child{border-radius:4px 0 0 0}th:last-child{border-radius:0 4px 0 0}
+td{padding:10px;text-align:center;border-bottom:1px solid var(--line);color:var(--body)}
 td:first-child{text-align:left;color:var(--mut)}
-tr:hover td{background:rgba(0,212,255,.05)}
-.pos{color:var(--good);font-weight:700}.neg{color:var(--bad)}
-.rec{margin-top:12px;border:1px dashed rgba(0,212,255,.4);border-radius:12px;
-padding:10px 14px;font-size:13px;background:rgba(0,212,255,.05);line-height:1.7}
-.rec .pick{color:var(--cyan);font-weight:800;text-shadow:0 0 10px rgba(0,212,255,.6)}
-.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:11px;
-font-weight:700;margin-left:8px}
-.b-good{background:rgba(43,217,124,.15);color:var(--good);border:1px solid rgba(43,217,124,.5)}
-.b-mid{background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.45)}
-.b-warn{background:rgba(255,180,84,.12);color:var(--warn);border:1px solid rgba(255,180,84,.5)}
+tr:hover td{background:var(--ash)}
+.pos{color:var(--pos);font-weight:500}.neg{color:var(--neg);font-weight:500}
+.rec{margin-top:16px;border:1px solid var(--line);border-radius:8px;
+padding:16px 18px;font-size:13px;background:var(--ash);line-height:1.7;color:var(--body)}
+.rec .pick{color:var(--blue);font-weight:500}
+.badge{display:inline-block;border-radius:4px;padding:3px 10px;font-size:12px;
+font-weight:500;margin-left:8px;border:1px solid var(--line2);background:var(--canvas)}
+.b-good{color:var(--blue);border-color:var(--blue)}
+.b-mid{color:var(--mut);border-color:var(--line2)}
+.b-warn{color:var(--neg);border-color:var(--neg)}
 ul{list-style:none}
-li{font-size:12.5px;padding:4px 0 4px 16px;position:relative;line-height:1.6}
-li:before{content:"";position:absolute;left:2px;top:11px;width:6px;height:6px;
-border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+li{font-size:13px;padding:5px 0 5px 16px;position:relative;line-height:1.6;color:var(--body)}
+li:before{content:"";position:absolute;left:2px;top:11px;width:5px;height:5px;
+border-radius:50%;background:var(--faint)}
 .mut{color:var(--mut)}
-.small{font-size:11px;color:var(--mut);line-height:1.65;margin-top:10px}
-.kpis{display:flex;gap:14px;margin:12px 0 2px}
-.kpi{flex:1;border:1px solid var(--line);border-radius:12px;padding:10px;
-text-align:center;background:rgba(0,0,0,.22)}
-.kpi .v{font-size:21px;font-weight:800;color:var(--cyan);text-shadow:0 0 12px rgba(0,212,255,.5)}
-.kpi .l{font-size:11px;color:var(--mut);margin-top:3px}
-.verdict{font-size:14px;font-weight:700;color:var(--mag);
-text-shadow:0 0 12px rgba(255,46,136,.5);margin-bottom:8px}
-.sub{font-size:12.5px;font-weight:700;color:var(--cyan);margin:12px 0 4px}
-.legend{display:flex;gap:16px;font-size:11px;color:var(--mut);margin-top:6px}
-.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:5px;
+.small{font-size:12px;color:var(--mut);line-height:1.65;margin-top:12px}
+.kpis{display:flex;gap:16px;margin:16px 0 4px}
+.kpi{flex:1;border:1px solid var(--line);border-radius:8px;padding:16px;
+text-align:center;background:var(--canvas)}
+.kpi .v{font-size:24px;font-weight:500;color:var(--ink)}
+.kpi .l{font-size:12px;color:var(--mut);margin-top:5px}
+.verdict{font-size:15px;font-weight:500;color:var(--ink);margin-bottom:10px}
+.sub{font-size:13px;font-weight:500;color:var(--ink);margin:16px 0 6px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-top:8px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;
 vertical-align:middle}
-.footer{margin-top:20px;font-size:11px;color:var(--mut);line-height:1.7;
-border-top:1px solid var(--line);padding-top:12px}
+.footer{margin-top:32px;font-size:12px;color:var(--mut);line-height:1.7;
+border-top:1px solid var(--line);padding-top:16px}
 svg text{font-family:inherit}
-.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
-.cols2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.card{overflow-x:auto}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media (max-width:900px){
-  body{min-width:0;padding:14px}
-  h1{font-size:22px}
+  body{min-width:0;padding:24px 16px}
+  h1{font-size:26px}
   .grid{grid-template-columns:1fr}
   .card,.card.w12{grid-column:span 1}
   .cols3,.cols2{grid-template-columns:1fr}
@@ -942,7 +936,7 @@ svg text{font-family:inherit}
 }
 """
 
-CHART_COLORS = ["#00d4ff", "#ff2e88", "#8b5cf6"]
+CHART_COLORS = ["#3e6ae1", "#171a20", "#8e8e8e"]
 
 
 def _svg_chart(series_list, width=640, height=200):
@@ -970,20 +964,20 @@ def _svg_chart(series_list, width=640, height=200):
     for i in range(4):  # 横向网格
         yy = y0 + (y1 - y0) * i / 3
         s.append(f'<line x1="{L}" y1="{Y(yy):.1f}" x2="{width - R}" y2="{Y(yy):.1f}"'
-                 f' stroke="rgba(122,134,173,.18)" stroke-width="1"/>')
+                 f' stroke="#eeeeee" stroke-width="1"/>')
         s.append(f'<text x="{L - 6}" y="{Y(yy) + 4:.1f}" font-size="10"'
-                 f' fill="#7a86ad" text-anchor="end">{yy:.2f}</text>')
+                 f' fill="#8e8e8e" text-anchor="end">{yy:.2f}</text>')
     for label, color, pts in series_list:
         coords = " ".join(f"{X(ep(t)):.1f},{Y(v):.1f}" for t, v in pts)
         s.append(f'<polyline points="{coords}" fill="none" stroke="{color}"'
                  f' stroke-width="2.2" stroke-linejoin="round"'
-                 f' style="filter:drop-shadow(0 0 4px {color})"/>')
+                 f'/>')
         lt, lv = pts[-1]
         s.append(f'<circle cx="{X(ep(lt)):.1f}" cy="{Y(lv):.1f}" r="3.5"'
-                 f' fill="{color}" style="filter:drop-shadow(0 0 6px {color})"/>')
-    s.append(f'<text x="{L}" y="{height - 6}" font-size="10" fill="#7a86ad">'
+                 f' fill="{color}"/>')
+    s.append(f'<text x="{L}" y="{height - 6}" font-size="10" fill="#8e8e8e">'
              f'{fmt_local(series_list[0][2][0][0])}</text>')
-    s.append(f'<text x="{width - R}" y="{height - 6}" font-size="10" fill="#7a86ad"'
+    s.append(f'<text x="{width - R}" y="{height - 6}" font-size="10" fill="#8e8e8e"'
              f' text-anchor="end">{fmt_local(series_list[0][2][-1][0])}</text>')
     s.append("</svg>")
     return "".join(s)
@@ -1007,7 +1001,7 @@ def _html_rec(name, rec, lag_books):
                 '——真实捡漏窗口，可能随时关闭</span>')
     flow_html = ""
     if rec.get("flow_note"):
-        fc = "#2bd97c" if rec.get("flow_align") else "#ffb454"
+        fc = "#3e6ae1" if rec.get("flow_align") else "#c0392b"
         flow_html = f'<br/><span style="color:{fc}">{rec["flow_note"]}</span>'
     if rec["win"] < rec["lose"]:
         flow_html += ('<br/><span class="mut">▲ 注意: 该方向是模型分布中的'
@@ -1037,7 +1031,7 @@ def build_html(res, out_path):
     P.append(f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{hz} vs {az} · 盘口解析</title>
-<style>{CYBER_CSS}</style></head><body>
+<style>{SITE_CSS}</style></head><body>
 <div class="hero"><div class="tag">FOOTBALL ODDS INTELLIGENCE</div>
 <h1>{hz}<span class="vs">VS</span>{az}</h1>
 <div class="chips">
@@ -1130,7 +1124,7 @@ def build_html(res, out_path):
                 f'成本更低但只覆盖这一个比分，按模型公平价 {s0["fair"]:.1f} 约需 '
                 f'{cover100:.0f} 元/百元让球（波胆市价我们不抓，实盘赔率以博彩页为准）。')
         hedge_html = (
-            f'<div class="rec" style="border-color:rgba(255,180,84,.4)">'
+            f'<div class="rec" style="border-color:#d0d1d2">'
             f'<b>💡 对冲 / 保险参考</b>'
             f'<span class="badge b-warn">降波动 · 不增EV</span><br/>'
             f'<span class="mut">本注是让球方，<b>平局会输</b>（模型平局概率 '
@@ -1178,7 +1172,7 @@ def build_html(res, out_path):
                 cs_dir = "小球" if cs_side == "under" else "大球"
                 ou_dir = "大球" if ou_rec["side"] == "over" else "小球"
                 cross = (
-                    f'<br/><span style="color:#ffb454">⚠ 与大小球推荐方向相反：'
+                    f'<br/><span style="color:#c0392b">⚠ 与大小球推荐方向相反：'
                     f'波胆首选 {top[0]["score"]}（属{cs_dir}）vs 大小球推荐{ou_dir}'
                     f'——二者优化目标不同（波胆＝最可能比分，大小球＝最划算价格），'
                     f'<b>勿同时下注，必输一边</b>。看价值跟大小球，博彩票买波胆，二选一。</span>')
@@ -1252,7 +1246,7 @@ def build_html(res, out_path):
 <div><div class="sub">① 市场锚点（主依据，模型全部输入）</div><ul>{a}</ul></div>
 <div><div class="sub">② 盘口走势（解读层，不进入计算）</div><ul>{t}</ul></div>
 <div><div class="sub">③ 纸面近况（辅助层，不进入计算）</div><ul>{f_}</ul></div></div>
-<div style="border-top:1px dashed rgba(0,212,255,.25);margin:16px 0 12px"></div>
+<div style="border-top:1px solid #eeeeee;margin:16px 0 12px"></div>
 <div class="ct" style="margin-bottom:6px"><div class="ico">→</div>
 <h2>④ 资金流向与盘口行为 · 盯盘序列分析</h2></div>
 <div class="verdict">综合判定: {flow['verdict']}</div>
@@ -1340,7 +1334,7 @@ def build_index():
         if not report.exists():
             report = PROJECT_DIR.parent / "docs" / fname
         if report.exists():
-            link = (f'<a href="match_{rid}_盘口解析.html" style="color:#00d4ff">'
+            link = (f'<a href="match_{rid}_盘口解析.html" style="color:#3e6ae1">'
                     f'打开报告 →</a>')
         else:
             link = f'<span class="mut">analyze.py {rid} 可生成</span>'
@@ -1355,7 +1349,7 @@ def build_index():
             score = (f"<td><b>{r['home_score']}-{r['away_score']}</b></td>"
                      if r["home_score"] is not None else "<td>—</td>")
         return (f"<tr><td>{fmt_local(r['kickoff_utc'])}</td>"
-                f"<td style='text-align:left;color:#dfe7ff'>"
+                f"<td style='text-align:left;color:#171a20'>"
                 f"{to_chinese(r['home_team'])} vs {to_chinese(r['away_team'])}</td>"
                 f"<td>{status}</td>{score}<td>{r['n_snaps']}</td><td>{link}</td></tr>")
 
@@ -1370,7 +1364,7 @@ def build_index():
         try:
             q = json.loads(qf.read_text(encoding="utf-8"))
             rem = q.get("remaining", 0)
-            qc = "#2bd97c" if rem > 150 else ("#ffb454" if rem > 60 else "#ff5d6c")
+            qc = "#171a20" if rem > 150 else ("#5c5e62" if rem > 60 else "#c0392b")
             quota_html = (
                 f'<div class="kpi"><div class="v" style="color:{qc};'
                 f'text-shadow:0 0 12px {qc}66">{rem}</div>'
@@ -1386,7 +1380,7 @@ def build_index():
             inner = ('<div class="v mut">—</div>'
                      '<div class="l">尚无已结算推荐</div>')
         else:
-            rc = "#2bd97c" if s["rate"] >= 50 else "#ff5d6c"
+            rc = "#171a20" if s["rate"] >= 50 else "#c0392b"
             roi_cls = "pos" if (s["roi"] or 0) >= 0 else "neg"
             inner = (
                 f'<div class="v" style="color:{rc};text-shadow:0 0 12px {rc}66">'
@@ -1410,7 +1404,7 @@ def build_index():
     html = f"""<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="300">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>足球盘口情报站 · 总览</title><style>{CYBER_CSS}</style></head><body>
+<title>足球盘口情报站 · 总览</title><style>{SITE_CSS}</style></head><body>
 <div class="hero"><div class="tag">FOOTBALL ODDS INTELLIGENCE · DASHBOARD</div>
 <h1>盘口情报站<span class="vs">//</span>总览</h1>
 <div class="chips">
