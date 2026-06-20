@@ -16,6 +16,7 @@
 局限: 模型校准基于 Pinnacle，对 Pinnacle 自身的盘 EV 必然接近 0，
 价值信号主要体现在其他公司偏离 Pinnacle 的地方；伤停/阵容等信息不在模型内。
 """
+import base64
 import json
 import math
 import sys
@@ -864,6 +865,44 @@ def fmt_local(utc_iso):
 
 # ---------------- HTML 主报告（赛博朋克风横版仪表盘） ----------------
 
+# Hero 背景：内嵌 SVG（夜场球场 · 蓝色单色调），base64 data URI 自带不依赖外链。
+# Tesla 的设计本就靠大图撑场面——白色 UI 浮于影像之上。
+HERO_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 440' "
+    "preserveAspectRatio='xMidYMid slice'>"
+    "<defs>"
+    "<linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'>"
+    "<stop offset='0' stop-color='#0a1430'/><stop offset='.5' stop-color='#13264f'/>"
+    "<stop offset='1' stop-color='#1d3c75'/></linearGradient>"
+    "<radialGradient id='fl' cx='.5' cy='.5' r='.5'>"
+    "<stop offset='0' stop-color='#bcd2ff' stop-opacity='.5'/>"
+    "<stop offset='1' stop-color='#bcd2ff' stop-opacity='0'/></radialGradient>"
+    "<linearGradient id='lg' x1='0' y1='0' x2='0' y2='1'>"
+    "<stop offset='.4' stop-color='#060c1c' stop-opacity='0'/>"
+    "<stop offset='1' stop-color='#060c1c' stop-opacity='.8'/></linearGradient>"
+    "</defs>"
+    "<rect width='1440' height='440' fill='url(#sky)'/>"
+    "<g fill='#fff' fill-opacity='.5'>"
+    "<circle cx='430' cy='60' r='1.3'/><circle cx='620' cy='38' r='1'/>"
+    "<circle cx='820' cy='66' r='1.2'/><circle cx='1010' cy='44' r='1'/>"
+    "<circle cx='540' cy='96' r='1'/><circle cx='930' cy='104' r='1.1'/></g>"
+    "<ellipse cx='250' cy='24' rx='360' ry='220' fill='url(#fl)'/>"
+    "<ellipse cx='1210' cy='8' rx='380' ry='240' fill='url(#fl)'/>"
+    "<g stroke='#9fb6e6' stroke-opacity='.35' stroke-width='2'>"
+    "<line x1='185' y1='70' x2='185' y2='280'/><line x1='1268' y1='56' x2='1268' y2='270'/></g>"
+    "<g fill='#dbe6ff' fill-opacity='.9'>"
+    "<rect x='152' y='52' width='66' height='22' rx='3'/>"
+    "<rect x='1236' y='38' width='66' height='22' rx='3'/></g>"
+    "<path d='M0 312 Q720 250 1440 312 L1440 440 L0 440 Z' fill='#0b1834'/>"
+    "<path d='M0 312 Q720 250 1440 312' fill='none' stroke='#3E6AE1' "
+    "stroke-opacity='.55' stroke-width='2'/>"
+    "<g stroke='#fff' stroke-opacity='.1' fill='none' stroke-width='2'>"
+    "<ellipse cx='720' cy='432' rx='180' ry='30'/><line x1='220' y1='432' x2='1220' y2='432'/></g>"
+    "<rect width='1440' height='440' fill='url(#lg)'/></svg>"
+)
+HERO_BG = "data:image/svg+xml;base64," + base64.b64encode(
+    HERO_SVG.encode("utf-8")).decode("ascii")
+
 SITE_CSS = """
 /* Tesla 风格：纯白画布 · 零装饰（无阴影/渐变）· 唯一强调色电蓝 · 大留白 */
 :root{--canvas:#fff;--ash:#f4f4f4;--ink:#171a20;--body:#393c41;--mut:#5c5e62;
@@ -873,7 +912,9 @@ SITE_CSS = """
 body{background:var(--canvas);color:var(--body);font-weight:400;line-height:1.5;
 font-family:"Universal Sans Text",-apple-system,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
 -webkit-font-smoothing:antialiased;padding:48px 40px 64px;min-width:1040px}
-.hero{padding:4px 0 28px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.hero{position:relative;border-radius:12px;overflow:hidden;margin-bottom:32px;
+min-height:300px;padding:48px 40px 30px;display:flex;flex-direction:column;
+justify-content:flex-end;background:#0a1430 url(__HERO_BG__) center/cover no-repeat}
 .tag{font-size:13px;font-weight:500;color:var(--blue);margin-bottom:14px}
 h1{font-size:38px;font-weight:500;color:var(--ink);line-height:1.2}
 h1 .vs{color:var(--mut);font-size:22px;font-weight:400;margin:0 14px}
@@ -881,6 +922,13 @@ h1 .vs{color:var(--mut);font-size:22px;font-weight:400;margin:0 14px}
 .chip{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:4px;
 padding:6px 12px;background:var(--canvas)}
 .chip b{color:var(--ink);font-weight:500}
+/* hero 内文字在深色影像上转白，chip 用 Tesla 磨砂玻璃 */
+.hero .tag{color:rgba(255,255,255,.82)}
+.hero h1{color:#fff}
+.hero h1 .vs{color:rgba(255,255,255,.55)}
+.hero .chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.24);
+color:rgba(255,255,255,.86)}
+.hero .chip b{color:#fff}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:32px}
 .card{grid-column:span 6;border:1px solid var(--line);border-radius:8px;
 background:var(--canvas);padding:24px 26px;overflow-x:auto}
@@ -935,6 +983,8 @@ svg text{font-family:inherit}
   .kpis{flex-wrap:wrap}.kpi{min-width:40%}
 }
 """
+
+SITE_CSS = SITE_CSS.replace("__HERO_BG__", HERO_BG)
 
 CHART_COLORS = ["#3e6ae1", "#171a20", "#8e8e8e"]
 

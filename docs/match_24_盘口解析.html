@@ -10,7 +10,9 @@
 body{background:var(--canvas);color:var(--body);font-weight:400;line-height:1.5;
 font-family:"Universal Sans Text",-apple-system,"PingFang SC","Microsoft YaHei",Arial,sans-serif;
 -webkit-font-smoothing:antialiased;padding:48px 40px 64px;min-width:1040px}
-.hero{padding:4px 0 28px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.hero{position:relative;border-radius:12px;overflow:hidden;margin-bottom:32px;
+min-height:300px;padding:48px 40px 30px;display:flex;flex-direction:column;
+justify-content:flex-end;background:#0a1430 url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNDQwIDQ0MCcgcHJlc2VydmVBc3BlY3RSYXRpbz0neE1pZFlNaWQgc2xpY2UnPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0nc2t5JyB4MT0nMCcgeTE9JzAnIHgyPScwJyB5Mj0nMSc+PHN0b3Agb2Zmc2V0PScwJyBzdG9wLWNvbG9yPScjMGExNDMwJy8+PHN0b3Agb2Zmc2V0PScuNScgc3RvcC1jb2xvcj0nIzEzMjY0ZicvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nIzFkM2M3NScvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSdmbCcgY3g9Jy41JyBjeT0nLjUnIHI9Jy41Jz48c3RvcCBvZmZzZXQ9JzAnIHN0b3AtY29sb3I9JyNiY2QyZmYnIHN0b3Atb3BhY2l0eT0nLjUnLz48c3RvcCBvZmZzZXQ9JzEnIHN0b3AtY29sb3I9JyNiY2QyZmYnIHN0b3Atb3BhY2l0eT0nMCcvPjwvcmFkaWFsR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSdsZycgeDE9JzAnIHkxPScwJyB4Mj0nMCcgeTI9JzEnPjxzdG9wIG9mZnNldD0nLjQnIHN0b3AtY29sb3I9JyMwNjBjMWMnIHN0b3Atb3BhY2l0eT0nMCcvPjxzdG9wIG9mZnNldD0nMScgc3RvcC1jb2xvcj0nIzA2MGMxYycgc3RvcC1vcGFjaXR5PScuOCcvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPScxNDQwJyBoZWlnaHQ9JzQ0MCcgZmlsbD0ndXJsKCNza3kpJy8+PGcgZmlsbD0nI2ZmZicgZmlsbC1vcGFjaXR5PScuNSc+PGNpcmNsZSBjeD0nNDMwJyBjeT0nNjAnIHI9JzEuMycvPjxjaXJjbGUgY3g9JzYyMCcgY3k9JzM4JyByPScxJy8+PGNpcmNsZSBjeD0nODIwJyBjeT0nNjYnIHI9JzEuMicvPjxjaXJjbGUgY3g9JzEwMTAnIGN5PSc0NCcgcj0nMScvPjxjaXJjbGUgY3g9JzU0MCcgY3k9Jzk2JyByPScxJy8+PGNpcmNsZSBjeD0nOTMwJyBjeT0nMTA0JyByPScxLjEnLz48L2c+PGVsbGlwc2UgY3g9JzI1MCcgY3k9JzI0JyByeD0nMzYwJyByeT0nMjIwJyBmaWxsPSd1cmwoI2ZsKScvPjxlbGxpcHNlIGN4PScxMjEwJyBjeT0nOCcgcng9JzM4MCcgcnk9JzI0MCcgZmlsbD0ndXJsKCNmbCknLz48ZyBzdHJva2U9JyM5ZmI2ZTYnIHN0cm9rZS1vcGFjaXR5PScuMzUnIHN0cm9rZS13aWR0aD0nMic+PGxpbmUgeDE9JzE4NScgeTE9JzcwJyB4Mj0nMTg1JyB5Mj0nMjgwJy8+PGxpbmUgeDE9JzEyNjgnIHkxPSc1NicgeDI9JzEyNjgnIHkyPScyNzAnLz48L2c+PGcgZmlsbD0nI2RiZTZmZicgZmlsbC1vcGFjaXR5PScuOSc+PHJlY3QgeD0nMTUyJyB5PSc1Micgd2lkdGg9JzY2JyBoZWlnaHQ9JzIyJyByeD0nMycvPjxyZWN0IHg9JzEyMzYnIHk9JzM4JyB3aWR0aD0nNjYnIGhlaWdodD0nMjInIHJ4PSczJy8+PC9nPjxwYXRoIGQ9J00wIDMxMiBRNzIwIDI1MCAxNDQwIDMxMiBMMTQ0MCA0NDAgTDAgNDQwIFonIGZpbGw9JyMwYjE4MzQnLz48cGF0aCBkPSdNMCAzMTIgUTcyMCAyNTAgMTQ0MCAzMTInIGZpbGw9J25vbmUnIHN0cm9rZT0nIzNFNkFFMScgc3Ryb2tlLW9wYWNpdHk9Jy41NScgc3Ryb2tlLXdpZHRoPScyJy8+PGcgc3Ryb2tlPScjZmZmJyBzdHJva2Utb3BhY2l0eT0nLjEnIGZpbGw9J25vbmUnIHN0cm9rZS13aWR0aD0nMic+PGVsbGlwc2UgY3g9JzcyMCcgY3k9JzQzMicgcng9JzE4MCcgcnk9JzMwJy8+PGxpbmUgeDE9JzIyMCcgeTE9JzQzMicgeDI9JzEyMjAnIHkyPSc0MzInLz48L2c+PHJlY3Qgd2lkdGg9JzE0NDAnIGhlaWdodD0nNDQwJyBmaWxsPSd1cmwoI2xnKScvPjwvc3ZnPg==) center/cover no-repeat}
 .tag{font-size:13px;font-weight:500;color:var(--blue);margin-bottom:14px}
 h1{font-size:38px;font-weight:500;color:var(--ink);line-height:1.2}
 h1 .vs{color:var(--mut);font-size:22px;font-weight:400;margin:0 14px}
@@ -18,6 +20,13 @@ h1 .vs{color:var(--mut);font-size:22px;font-weight:400;margin:0 14px}
 .chip{font-size:13px;color:var(--mut);border:1px solid var(--line);border-radius:4px;
 padding:6px 12px;background:var(--canvas)}
 .chip b{color:var(--ink);font-weight:500}
+/* hero 内文字在深色影像上转白，chip 用 Tesla 磨砂玻璃 */
+.hero .tag{color:rgba(255,255,255,.82)}
+.hero h1{color:#fff}
+.hero h1 .vs{color:rgba(255,255,255,.55)}
+.hero .chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.24);
+color:rgba(255,255,255,.86)}
+.hero .chip b{color:#fff}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:24px;margin-top:32px}
 .card{grid-column:span 6;border:1px solid var(--line);border-radius:8px;
 background:var(--canvas);padding:24px 26px;overflow-x:auto}
