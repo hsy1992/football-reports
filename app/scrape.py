@@ -226,25 +226,10 @@ def place_paper_bets(conn, match):
         db.insert_paper_bet(conn, match["id"], "cs", top["score"], None,
                             None, None, round(top["fair"], 2), None, stake=0.1)
 
-    # 平行实验组：检测到职业资金强信号（让球线移动）时，额外按资金方向
-    # 落一注（该方向的最优价），与 EV 策略分账复盘——验证"该不该跟资金"
-    flow = res.get("flow") or {}
-    if flow.get("strong") and flow.get("direction") and res["ah"]:
-        side = "home" if flow["direction"] > 0 else "away"
-        from analyze import ah_label
-        cands = []
-        for r in res["ah"]:
-            if side == "home":
-                cands.append((r["ev_home"], ah_label("home", r["line"]),
-                              r["line"], r["home_odds"], r["bookmaker"]))
-            else:
-                cands.append((r["ev_away"], ah_label("away", r["line"]),
-                              r["line"], r["away_odds"], r["bookmaker"]))
-        ev_, pick, line, odds_, bk = max(cands)
-        db.insert_paper_bet(conn, match["id"], "ah", pick, bk, line, side,
-                            odds_, ev_, strategy="flow")
-        log.info("%s 顺资金策略加注: %s @ %.2f（资金方向%s）",
-                 label, pick, odds_, "主队" if side == "home" else "客队")
+    # 顺资金平行实验组已下线（2026-06）：24 场回测中该策略 0/3 命中、ROI -100%，
+    # 且回看分析显示"资金流向/让球线移动"与赛果统计上不可区分于噪声——开赛前盘口
+    # 基本不动，所谓强信号多来自早期种子/滚球噪声。不再按资金方向加注；资金流向
+    # 仅作低置信度的解读文字保留。如需重启验证，恢复本段并重新分账复盘即可。
     log.info("%s 模拟下注已落单（亚盘/大小球注额 1，波胆注额 0.1）", label)
 
 

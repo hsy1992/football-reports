@@ -303,8 +303,20 @@ def latest_odds(conn, match_id):
 
     latest:  {market: {bookmaker: 最新一行}} —— EV 表用真实最新报价
     history: {(market, bookmaker): [按时间升序的所有行]} —— 模型校准用平滑值
+
+    只保留开赛前的快照：本系统做的是赛前预测/EV，开赛后的滚球价不能用作
+    “收盘价”。抓取守护进程会在开赛后继续记录几帧滚球价，若不剔除会污染
+    已完赛比赛的收盘概率（校准、回测、定稿展示都会受影响）。对未开赛比赛
+    所有快照本就在开赛前，此过滤为空操作。
     """
     rows = db.get_snapshots(conn, match_id)
+    m = conn.execute("SELECT kickoff_utc FROM matches WHERE id=?",
+                     (match_id,)).fetchone()
+    ko = m["kickoff_utc"] if m else None
+    if ko:
+        pre = [r for r in rows if r["fetched_at"] < ko]
+        if pre:                      # 保险：万一全是开赛后快照，退回用全部
+            rows = pre
     latest, history = {}, {}
     for r in rows:
         latest.setdefault(r["market"], {})[r["bookmaker"]] = r
@@ -598,22 +610,24 @@ def _money_flow(history):
                 flow["sharp"].append("Betfair 交易所未同步——Pinnacle 的移动可能是"
                                      "风控调价而非资金驱动，降级处理")
 
-    # 综合判定（“明确”一词只授予让球线移动这种强信号）
+    # 综合判定。措辞已整体降调：24 场回看显示资金流向/盘口移动与赛果统计上
+    # 不可区分于噪声，故不再用“明确/职业资金流向”这类笃定表述，统一标注为
+    # 低置信度的价格行为观察，仅供参考，不作为下注依据。
     line_moved = any("升盘" in s or "退盘" in s for s in flow["sharp"])
     flow["direction"] = direction   # >0 资金偏主队, <0 偏客队
     flow["strong"] = line_moved
     if direction > 0:
         side_txt = "主队"
     elif direction < 0:
-        side_txt = "客队方向（对主队降温）"
+        side_txt = "客队方向"
     if direction == 0:
-        flow["verdict"] = "无明显方向性资金"
+        flow["verdict"] = "盘口稳定，无明显方向性价格动作"
     elif line_moved:
-        flow["verdict"] = f"职业资金明确流向{side_txt}（含让球线移动的强信号）"
-    elif abs(direction) >= 2:
-        flow["verdict"] = f"多个温和信号一致：资金偏向{side_txt}"
+        flow["verdict"] = (f"价格偏向{side_txt}（含让球线移动）"
+                           f"——低置信度，回测显示该信号≈噪声，仅供参考")
     else:
-        flow["verdict"] = f"资金温和偏向{side_txt}"
+        flow["verdict"] = (f"价格小幅偏向{side_txt}"
+                           f"——参考意义低（回测中与赛果不相关）")
 
     # 4) 软庄行为检测（滞后 / 逆共识 / 同步）
     for (mk, bk), rows in history.items():
@@ -797,14 +811,14 @@ def analyze(match_id):
     if ah_rec and flow["direction"] != 0:
         rec_home = ah_rec["side"] == "home"
         flow_home = flow["direction"] > 0
-        strength = "强信号·让球线移动" if flow["strong"] else "温和信号"
+        # 仅作参考性标注：回测显示资金方向≈噪声，不再渲染成"两轴互证/背离"
+        # 这类有指导性的措辞，避免读者据此加注。
         if rec_home == flow_home:
-            ah_rec["flow_note"] = f"✓ 与职业资金方向一致（{strength}），两轴互证"
+            ah_rec["flow_note"] = "价格行为恰与本推荐同向（参考意义低）"
             ah_rec["flow_align"] = True
         else:
-            ah_rec["flow_note"] = (
-                f"⚠ 与职业资金方向背离（资金偏向{'主队' if flow_home else '客队'}，"
-                f"{strength}）——本推荐取“价格最优”，方向派的成绩见顺资金策略复盘")
+            ah_rec["flow_note"] = ("价格行为与本推荐反向（参考意义低，"
+                                   "回测中资金方向与赛果不相关）")
             ah_rec["flow_align"] = False
     paper_bets = [dict(b) for b in db.get_paper_bets(conn, match_id)]
     fundamentals = _build_fundamentals(conn, match)
@@ -1210,9 +1224,10 @@ def build_html(res, out_path):
                 '赛果回填后自动结算。</div>')
     P.append(f"""<div class="card"><div class="ct"><div class="ico">※</div>
 <h2>模拟下注 · 复盘数据，非真实投注</h2></div>{body}
-<div class="small">策略说明: <b>EV最优</b> = 全场损耗最小入口（纯数学）；
-<b>顺资金</b> = 检测到让球线移动的强信号时按职业资金方向加注（平行实验组）——
-两条策略分账复盘，用数据裁决“该不该跟资金方向”。
+<div class="small">策略说明: <b>EV最优</b> = 全场损耗最小入口（纯数学）。
+<b>顺资金</b>（按职业资金方向加注的平行实验组）已于 2026-06 下线：24 场分账复盘
+中 0/3 命中、ROI −100%，且回看分析显示资金方向与赛果统计上不相关，故停用；
+历史注单仍如实保留展示。
 注额规则: 亚盘/大小球每注 1，<b>波胆每注 0.1</b>——高赔率玩法
 按现实投注习惯采用小仓位，与前文“波胆仓位应远小于亚盘/大小球”的提示一致。
 波胆按模型公平赔率记账（市价不可采集），其复盘指标为命中率校准；
