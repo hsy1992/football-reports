@@ -13,12 +13,50 @@ from datetime import datetime, timedelta, timezone
 import requests
 
 from config import (
-    BOOKMAKERS, LOG_DIR, MARKETS, ODDS_API_KEY, PROJECT_DIR,
-    QUOTA_WARN_THRESHOLD, USER_AGENT,
+    BOOKMAKERS, LOG_DIR, MARKETS, ODDS_API_KEY, ODDS_API_KEY_FALLBACK,
+    PROJECT_DIR, QUOTA_WARN_THRESHOLD, USER_AGENT,
 )
 
 BASE = "https://api.the-odds-api.com/v4"
 log = logging.getLogger("odds_api")
+
+# 当前生效的 key 与备用 key（进程内可变）。主 key 401 时自动提升备用 key。
+_CURRENT_KEY = ODDS_API_KEY
+_FALLBACK_KEY = ODDS_API_KEY_FALLBACK
+
+
+def _promote_fallback_key():
+    """主 key 额度耗尽/失效时，把备用 key 提升为主 key（进程内立即生效）。
+
+    本地（存在 .env）会把切换持久化写回 .env，供后续每个进程读取；
+    云端 CI（无 .env，key 来自 GitHub Secret）只做进程内切换、绝不写文件——
+    避免把 key 落盘后被 `git add -A` 提交进仓库泄露。CI 每轮全新启动时会用
+    主 Secret 重试一次（401 不消耗额度），随即自动切到备用 Secret，自愈。
+    无备用 key 或已切换过则返回 False。"""
+    global _CURRENT_KEY, _FALLBACK_KEY
+    if not _FALLBACK_KEY or _FALLBACK_KEY == _CURRENT_KEY:
+        return False
+    new_key, old_key = _FALLBACK_KEY, _CURRENT_KEY
+    env_file = PROJECT_DIR / ".env"
+    if env_file.exists():                      # 仅本地持久化；CI 无 .env → 跳过写文件
+        lines = env_file.read_text(encoding="utf-8").splitlines()
+        out, seen = [], False
+        for line in lines:
+            s = line.strip()
+            if s.startswith("ODDS_API_KEY=") or s.startswith("ODDS_API_KEY ="):
+                out.append(f"ODDS_API_KEY={new_key}")
+                seen = True
+            elif s.startswith("ODDS_API_KEY_FALLBACK"):
+                out.append(f"# {s}  # 已于额度耗尽时启用为主 key（原主 key={old_key}）")
+            else:
+                out.append(line)
+        if not seen:
+            out.insert(0, f"ODDS_API_KEY={new_key}")
+        env_file.write_text("\n".join(out) + "\n", encoding="utf-8")
+    _CURRENT_KEY, _FALLBACK_KEY = new_key, ""
+    log.error("主 key 额度耗尽/失效，已自动切换到备用 key 继续采集")
+    _notify_mac("足球数据采集", "主 key 额度耗尽，已自动启用备用 key 继续采集")
+    return True
 
 # 中文队名 -> The Odds API 英文名（主要覆盖国家队；俱乐部可直接用英文名添加）
 ZH_EN = {
@@ -136,12 +174,11 @@ def _similar(a, b):
 
 
 def _get(path, params, retries=3):
-    params = dict(params, apiKey=ODDS_API_KEY)
     last_err = None
     for attempt in range(1, retries + 1):
         try:
             resp = requests.get(
-                f"{BASE}{path}", params=params,
+                f"{BASE}{path}", params=dict(params, apiKey=_CURRENT_KEY),
                 headers={"User-Agent": USER_AGENT}, timeout=30,
             )
             remaining = resp.headers.get("x-requests-remaining")
@@ -150,6 +187,9 @@ def _get(path, params, retries=3):
                 _maybe_warn_quota(remaining)
                 _save_quota(remaining)
             if resp.status_code == 401:
+                # 主 key 额度耗尽/失效：若有备用 key，切换后立即重试本次请求
+                if _promote_fallback_key():
+                    continue
                 _notify_mac("足球数据采集",
                             "The Odds API 额度已耗尽或 key 失效，已切换备用数据源")
                 raise OddsApiError("API key 无效或额度耗尽 (401)")

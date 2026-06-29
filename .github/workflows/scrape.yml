@@ -28,6 +28,7 @@ jobs:
       - name: 抓取 + 生成报告 + 回填赛果 + 结算注单
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ODDS_API_KEY_FALLBACK: ${{ secrets.ODDS_API_KEY_FALLBACK }}
         working-directory: app
         run: python scrape.py
 
