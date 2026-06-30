@@ -24,7 +24,7 @@ from analyze import (
     ANCHOR_BOOKS, analyze, demargin, diff_dist, ev_total, fit_model,
     latest_odds, score_matrix, smooth_quote, total_dist,
 )
-from config import PROJECT_DIR
+from config import PROJECT_DIR, KNOCKOUT_START_ID
 
 MIN_N_SWITCH = 20    # 切换模型参数的最小样本量
 MIN_N_TAIL = 30      # 评论尾部偏差的最小样本量
@@ -176,8 +176,34 @@ def main():
             print(f"{names.get(mk, mk):<4} {n_} 注 | 赢 {wins} ({wins/n_:.0%}) | "
                   f"累计盈亏 {pnl:+.2f} | ROI {roi:+.1f}%{tag}")
             if mk != "cs" and n_ >= MIN_N_SWITCH:
+                # 不再把正 ROI 夸成"值得深入"：模型≈市场时理论 edge≈0，且 74 场按 EV 分桶
+                # 显示高 EV 注单反向（46% 胜率/-18.7%），正 ROI 大概率系小样本方差+跨公司
+                # 选最优价的选择偏差，不构成可盈利策略。
                 notes.append(f"[复盘] {names[mk]} {n_} 注 ROI {roi:+.1f}%"
-                             f"——{'策略呈正期望，值得深入' if roi > 0 else 'ROI 为负，与负 EV 入场一致，勿当作可盈利策略'}")
+                             f"——视作方差，勿当作可盈利策略（模型≈市场，理论 edge≈0；"
+                             f"高 EV 注单实测反向）")
+
+    # 阶段埋点（小组赛 vs 淘汰赛）：仅观察赛事节奏差异，暂不进模型。
+    # 假设：淘汰赛更保守 → 平局多/进球少/深盘难打穿。等淘汰赛样本攒够再评估是否给权重。
+    st_rows = conn.execute(
+        "SELECT id, home_score hs, away_score a_s FROM matches "
+        "WHERE home_score IS NOT NULL").fetchall()
+    stages = {"小组赛": [], "淘汰赛": []}
+    for r in st_rows:
+        stages["淘汰赛" if r["id"] >= KNOCKOUT_START_ID else "小组赛"].append(r)
+    print("\n=== 阶段埋点（小组 vs 淘汰赛，仅观察，暂不进模型）===")
+    for k, rs in stages.items():
+        if not rs:
+            print(f"  {k}: 暂无样本")
+            continue
+        ns = len(rs)
+        draw = sum(1 for r in rs if r["hs"] == r["a_s"]) / ns
+        avg_g = sum(r["hs"] + r["a_s"] for r in rs) / ns
+        big = sum(1 for r in rs if abs(r["hs"] - r["a_s"]) >= 3) / ns
+        print(f"  {k}: {ns} 场 | 平局 {draw:.0%} | 场均进球 {avg_g:.2f} | 大胜(净3+) {big:.0%}")
+        if k == "淘汰赛" and ns >= 10:
+            notes.append(f"[阶段] 淘汰赛 {ns} 场：平局 {draw:.0%} / 场均 {avg_g:.2f} 球 / "
+                         f"大胜 {big:.0%}——样本够，可对比小组赛评估是否系统性走小/降盘")
 
     _write_config(n, devig_method, anchor_weights, notes)
     print(f"\n校准配置已写入 calibration.json（{len(notes)} 条记录）")

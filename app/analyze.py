@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import db
-from config import PROJECT_DIR, TZ
+from config import PROJECT_DIR, TZ, KNOCKOUT_START_ID
 from sources.odds_api import to_chinese
 from sources import espn, venues
 
@@ -1047,17 +1047,20 @@ def _svg_chart(series_list, width=640, height=200):
 
 
 def _html_rec(name, rec, lag_books):
-    if rec["ev"] > 15:
-        # 错盘护栏: EV 好到不真实，大概率是数据毛刺或庄家错盘——
-        # 错盘注单可被"明显错误"条款单方面作废，不应当作机会推荐
-        badge = ('<span class="badge b-warn">⚠ 疑似错盘或数据异常 · '
-                 '先核实可成交性，勿当作机会</span>')
+    # 错盘护栏阈值从 15% 收紧到 8%：74 场回测显示 EV>=5% 的让球盘注单胜率仅 46%、
+    # ROI -18.7%——模型≈市场时，相对模型的大正 EV 多是某家滞后/错盘/口径不同的烂价，
+    # 不是真机会。同理"正 EV"不再标"推荐"：让球盘正 EV 经实测非可靠买入信号，统一降为
+    # 信息参考，避免把"价格优于模型公平价"误读成"押这个能赢"。
+    if rec["ev"] > 8:
+        badge = ('<span class="badge b-warn">⚠ 疑似错盘/数据异常 · '
+                 '几乎不是真机会，勿下注</span>')
     elif rec["ev"] > 0:
-        badge = '<span class="badge b-good">推荐 · 正期望</span>'
+        badge = ('<span class="badge b-mid">价格略优于模型公平价 · '
+                 '信息参考，非买入信号</span>')
     elif rec["ev"] > -2.5:
-        badge = '<span class="badge b-mid">可参与 · 损耗在抽水内</span>'
+        badge = '<span class="badge b-mid">价格接近公平 · 损耗在抽水内</span>'
     else:
-        badge = '<span class="badge b-warn">建议观望 · 损耗过高</span>'
+        badge = '<span class="badge b-warn">价格低于公平 · 损耗过高</span>'
     note = ""
     if rec["ev"] > 0 and rec["bookmaker"] in lag_books:
         note = ('<br/><span class="pos">↳ 成色: 滞后旧价（锚点已动该公司未跟）'
@@ -1099,6 +1102,7 @@ def build_html(res, out_path):
 <h1>{hz}<span class="vs">VS</span>{az}</h1>
 <div class="chips">
 <span class="chip">赛事 <b>{m['competition'] or '—'}</b></span>
+<span class="chip">阶段 <b>{'淘汰赛' if m['id'] >= KNOCKOUT_START_ID else '小组赛'}</b></span>
 <span class="chip">开赛 <b>{fmt_local(m['kickoff_utc'])}</b>（北京时间）</span>
 <span class="chip">快照 <b>{fmt_local(res['fetched_at'])}</b></span>
 <span class="chip">基准 <b>{res['base_book']}</b></span>
