@@ -27,6 +27,13 @@ ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 # 备用 key：主 key 额度耗尽(401)时自动启用，详见 sources/odds_api.py
 ODDS_API_KEY_FALLBACK = os.environ.get("ODDS_API_KEY_FALLBACK", "")
 
+# API-Football (api-sports.io v3)：球员/大名单/伤停/裁判/教练/首发的主数据源。
+# 注册后在 app/.env 写入 API_FOOTBALL_KEY=xxx 即可。免费档 100 次/天够构建测试。
+API_FOOTBALL_KEY = os.environ.get("API_FOOTBALL_KEY", "")
+API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
+# 球员赛季数据所在赛季（世界杯年取当年；国家队赛季按自然年）
+API_FOOTBALL_SEASON = int(os.environ.get("API_FOOTBALL_SEASON", "2026"))
+
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"

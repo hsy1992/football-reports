@@ -61,6 +61,94 @@ CREATE TABLE IF NOT EXISTS paper_bets (
     pnl REAL,                        -- 每注本金 1
     settled_at TEXT
 );
+-- ========== 球员/球队信息（API-Football 主数据源）==========
+CREATE TABLE IF NOT EXISTS api_team_ids (
+    team_name TEXT PRIMARY KEY,      -- 我库英文队名(The Odds API 口径)
+    api_team_id INTEGER NOT NULL,
+    canonical_name TEXT,             -- API-Football 返回的官方名
+    fetched_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS players (
+    api_player_id INTEGER PRIMARY KEY,   -- 同球员全局唯一，INSERT OR REPLACE 覆盖更新
+    name TEXT NOT NULL,
+    firstname TEXT,
+    lastname TEXT,
+    age INTEGER,
+    nationality TEXT,
+    birth_date TEXT,
+    height TEXT,
+    weight TEXT,
+    photo TEXT,
+    injured INTEGER DEFAULT 0,           -- 0/1
+    -- 最近一次抓取所在的国家队大名单上下文
+    team_name TEXT,
+    position TEXT,
+    squad_number INTEGER,
+    season INTEGER,
+    fetched_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS player_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_player_id INTEGER NOT NULL REFERENCES players(api_player_id),
+    season INTEGER NOT NULL,
+    team_name TEXT,                      -- 该 stat block 所属队(国家队或俱乐部)
+    league_name TEXT,
+    league_country TEXT,
+    position TEXT,
+    appearances INTEGER,
+    lineups INTEGER,
+    minutes INTEGER,
+    rating REAL,
+    captain INTEGER DEFAULT 0,
+    shots_total INTEGER,
+    shots_on INTEGER,
+    goals INTEGER,
+    assists INTEGER,
+    passes_total INTEGER,
+    passes_key INTEGER,
+    passes_accuracy TEXT,                -- API 返回字符串如 "82.3"
+    tackles_total INTEGER,
+    tackles_blocks INTEGER,
+    tackles_interceptions INTEGER,
+    duels_total INTEGER,
+    duels_won INTEGER,
+    dribbles_attempts INTEGER,
+    dribbles_success INTEGER,
+    dribbles_past INTEGER,
+    fouls_drawn INTEGER,
+    fouls_committed INTEGER,
+    cards_yellow INTEGER,
+    cards_yellowred INTEGER,
+    cards_red INTEGER,
+    penalty_won INTEGER,
+    penalty_scored INTEGER,
+    penalty_missed INTEGER,
+    xg REAL,                             -- 预留：API-Football 不提供，待 FBref/SportMonks 补
+    xag REAL,
+    fetched_at TEXT NOT NULL,
+    UNIQUE(api_player_id, season, league_name, team_name)
+);
+CREATE TABLE IF NOT EXISTS injuries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_player_id INTEGER,
+    player_name TEXT,
+    team_name TEXT,
+    reason TEXT,
+    type TEXT,
+    status TEXT,
+    injury_date TEXT,
+    fetched_at TEXT NOT NULL,
+    UNIQUE(api_player_id, injury_date, reason)
+);
+CREATE TABLE IF NOT EXISTS coaches (
+    team_name TEXT PRIMARY KEY,
+    api_coach_id INTEGER,
+    name TEXT,
+    age INTEGER,
+    nationality TEXT,
+    photo TEXT,
+    fetched_at TEXT NOT NULL
+);
 """
 
 
@@ -347,5 +435,104 @@ def finish_run(conn, run_id, status, detail=""):
     conn.execute(
         "UPDATE scrape_runs SET finished_at=?, status=?, detail=? WHERE id=?",
         (utcnow_iso(), status, detail, run_id),
+    )
+    conn.commit()
+
+
+# ---------- 球员/球队信息（API-Football）----------
+
+def list_team_names(conn):
+    """matches 表里出现的所有队名(英中混合)，由调用方归一化为英文后去重。"""
+    rows = conn.execute(
+        "SELECT DISTINCT home_team AS t FROM matches"
+        " UNION SELECT DISTINCT away_team AS t FROM matches"
+    ).fetchall()
+    return [r["t"] for r in rows if r["t"]]
+
+
+def upsert_team_id(conn, team_name, api_team_id, canonical_name=None):
+    conn.execute(
+        "INSERT OR REPLACE INTO api_team_ids (team_name, api_team_id,"
+        " canonical_name, fetched_at) VALUES (?,?,?,?)",
+        (team_name, api_team_id, canonical_name, utcnow_iso()),
+    )
+    conn.commit()
+
+
+def get_team_id(conn, team_name):
+    row = conn.execute(
+        "SELECT api_team_id FROM api_team_ids WHERE team_name=?", (team_name,)
+    ).fetchone()
+    return row["api_team_id"] if row else None
+
+
+def upsert_player(conn, p):
+    """p: dict(api_player_id, name, firstname, lastname, age, nationality,
+    birth_date, height, weight, photo, injured, team_name, position,
+    squad_number, season)。INSERT OR REPLACE 覆盖同球员旧记录。"""
+    conn.execute(
+        "INSERT OR REPLACE INTO players (api_player_id, name, firstname,"
+        " lastname, age, nationality, birth_date, height, weight, photo,"
+        " injured, team_name, position, squad_number, season, fetched_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (p["api_player_id"], p["name"], p.get("firstname"), p.get("lastname"),
+         p.get("age"), p.get("nationality"), p.get("birth_date"),
+         p.get("height"), p.get("weight"), p.get("photo"),
+         int(bool(p.get("injured"))), p.get("team_name"), p.get("position"),
+         p.get("squad_number"), p.get("season"), utcnow_iso()),
+    )
+    conn.commit()
+
+
+def upsert_player_stats(conn, s):
+    """s: dict，stat block 各字段。同一(球员,赛季,联赛,队)覆盖更新。"""
+    conn.execute(
+        "INSERT OR REPLACE INTO player_stats (api_player_id, season, team_name,"
+        " league_name, league_country, position, appearances, lineups, minutes,"
+        " rating, captain, shots_total, shots_on, goals, assists, passes_total,"
+        " passes_key, passes_accuracy, tackles_total, tackles_blocks,"
+        " tackles_interceptions, duels_total, duels_won, dribbles_attempts,"
+        " dribbles_success, dribbles_past, fouls_drawn, fouls_committed,"
+        " cards_yellow, cards_yellowred, cards_red, penalty_won, penalty_scored,"
+        " penalty_missed, xg, xag, fetched_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,"
+        "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (s["api_player_id"], s["season"], s.get("team_name"),
+         s.get("league_name"), s.get("league_country"), s.get("position"),
+         s.get("appearances"), s.get("lineups"), s.get("minutes"),
+         s.get("rating"), int(bool(s.get("captain"))),
+         s.get("shots_total"), s.get("shots_on"), s.get("goals"),
+         s.get("assists"), s.get("passes_total"), s.get("passes_key"),
+         s.get("passes_accuracy"), s.get("tackles_total"),
+         s.get("tackles_blocks"), s.get("tackles_interceptions"),
+         s.get("duels_total"), s.get("duels_won"), s.get("dribbles_attempts"),
+         s.get("dribbles_success"), s.get("dribbles_past"),
+         s.get("fouls_drawn"), s.get("fouls_committed"),
+         s.get("cards_yellow"), s.get("cards_yellowred"), s.get("cards_red"),
+         s.get("penalty_won"), s.get("penalty_scored"), s.get("penalty_missed"),
+         s.get("xg"), s.get("xag"), utcnow_iso()),
+    )
+    conn.commit()
+
+
+def upsert_injury(conn, i):
+    """i: dict(api_player_id, player_name, team_name, reason, type, status,
+    injury_date)。同(球员,日期,原因)覆盖。"""
+    conn.execute(
+        "INSERT OR REPLACE INTO injuries (api_player_id, player_name, team_name,"
+        " reason, type, status, injury_date, fetched_at) VALUES (?,?,?,?,?,?,?,?)",
+        (i.get("api_player_id"), i.get("player_name"), i.get("team_name"),
+         i.get("reason"), i.get("type"), i.get("status"),
+         i.get("injury_date"), utcnow_iso()),
+    )
+    conn.commit()
+
+
+def upsert_coach(conn, team_name, c):
+    """c: dict(api_coach_id, name, age, nationality, photo)。每队一教练覆盖。"""
+    conn.execute(
+        "INSERT OR REPLACE INTO coaches (team_name, api_coach_id, name, age,"
+        " nationality, photo, fetched_at) VALUES (?,?,?,?,?,?,?)",
+        (team_name, c.get("api_coach_id"), c.get("name"), c.get("age"),
+         c.get("nationality"), c.get("photo"), utcnow_iso()),
     )
     conn.commit()
